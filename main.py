@@ -1,6 +1,8 @@
 import os
 import argparse
+from prompts import system_prompt
 from dotenv import load_dotenv
+from call_function import available_functions
 from google import genai
 from google.genai import types
 
@@ -18,7 +20,7 @@ def main():
     messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
     response = client.models.generate_content(
 	model="gemini-2.5-flash",
-	contents=messages)
+	contents=messages, config=types.GenerateContentConfig(tools = [available_functions], system_instruction=system_prompt))
     usage = response.usage_metadata
 
     if args.verbose:
@@ -26,9 +28,18 @@ def main():
         print("Prompt tokens: ", usage.prompt_token_count)
         print("Response tokens: ", usage.candidates_token_count)
         print(response.text)
+    
     else:
-        print(response.text)
+        if response.function_calls:
+         function_call_result = call_function(response.function_calls[0], verbose=args.verbose)
+         for function_call in response.function_calls:
+            if function_call_result.parts is None:
+                print(f"Function call {function_call.name} returned no parts")
+            
+            print(f"Calling function: {function_call.name}({function_call.args})")
+        else:
+            print(response.text)
 
-
+    
 if __name__ == "__main__":
     main()
