@@ -9,7 +9,6 @@ available_functions = types.Tool(
 )
 
 def call_function(function_call, verbose=False):
-    function_call = function_call.to_string()
     function_name = function_call.name or ""
     args = dict(function_call.args) if function_call.args else {}
 
@@ -36,7 +35,7 @@ def call_function(function_call, verbose=False):
             ],
         )
     
-    working_directory = "./calculator"
+    args["working_directory"] = "./calculator"
     function_result = function_map[function_name](**args)
 
     return types.Content(

@@ -2,7 +2,7 @@ import os
 import argparse
 from prompts import system_prompt
 from dotenv import load_dotenv
-from call_function import available_functions
+from call_function import available_functions, call_function
 from google import genai
 from google.genai import types
 
@@ -27,19 +27,25 @@ def main():
         print("User prompt: ", args.user_prompt)
         print("Prompt tokens: ", usage.prompt_token_count)
         print("Response tokens: ", usage.candidates_token_count)
-        print(response.text)
     
+    if response.function_calls:
+        function_responses = []
+        for function_call in response.function_calls:
+            function_call_result = call_function(function_call, verbose=args.verbose)
+            if not function_call_result.parts:
+                raise RuntimeError(f"Function call result has no parts: {function_call_result}")
+            if not function_call_result.parts[0].function_response:
+                raise RuntimeError(f"Function call result part has no function response: {function_call_result.parts[0]}")
+            if not function_call_result.parts[0].function_response.response:
+                raise RuntimeError(f"Function call result part has no function response content: {function_call_result.parts[0].function_response}")
+            function_responses.append(function_call_result.parts[0])
+            if args.verbose:
+                print(f"-> {function_call_result.parts[0].function_response.response}")      
+    
+             
     else:
-        if response.function_calls:
-         function_call_result = call_function(response.function_calls[0], verbose=args.verbose)
-         for function_call in response.function_calls:
-            if function_call_result.parts is None:
-                print(f"Function call {function_call.name} returned no parts")
-            
-            print(f"Calling function: {function_call.name}({function_call.args})")
-        else:
-            print(response.text)
-
+        print(response.text)
+        
     
 if __name__ == "__main__":
     main()
